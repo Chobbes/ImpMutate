@@ -22,7 +22,7 @@
 -}
 
 
-module ImpMutate.InputLine (InputLine (..), linesToCSV) where
+module ImpMutate.InputLine (InputLine (..)) where
 
 import Data.List
 
