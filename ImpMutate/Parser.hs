@@ -28,6 +28,7 @@ module ImpMutate.Parser (parsePSSP) where
 import ImpMutate.InputLine
 
 import Control.Applicative
+import Control.Arrow
 import Data.Attoparsec.Text
 import Data.Maybe
 import Prelude hiding (takeWhile)
@@ -64,23 +65,24 @@ parseMTLRFeature = do skipSpace
 parseCSV :: Parser [InputLine]
 parseCSV = do header <- (do csv <- parseCSVLine; return [csv]) <|> (skipToEndOfLine *> return [])
               inps <- many parseCSVLine
-              endOfInput
               return inps
 
 -- | Parse a single line of CSV data.
 parseCSVLine :: Parser InputLine
 parseCSVLine = do event <- double
                   char ','
+                  skipSpace
                   censored <- decimal
                   features <- many parseCSVFeature
                   endOfLine'
-                  return (InputLine event (censored /= 0) (zip [1..] $ catMaybes features))
+                  return (InputLine event (censored /= 0) (map (fst &&& fromJust . snd) $ filter (isJust . snd) (zip [1..] features)))
 
 -- | Parse a single feature from CSV data.
 parseCSVFeature :: Parser (Maybe Double)
 parseCSVFeature =
   do char ','
-     (do value <- double; return (Just value)) <|> (skipToEndOfLine *> return Nothing)
+     skipSpace
+     (do value <- double; return (Just value)) <|> (skipWhile (/= ',') *> return Nothing) <|> (skipToEndOfLine *> return Nothing)
 
 -- | Newline parser to handle all sorts of horrible.
 endOfLine' :: Parser ()
